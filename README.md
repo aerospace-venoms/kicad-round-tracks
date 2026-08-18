@@ -1,4 +1,15 @@
 # KiCad Round Tracks
+
+🤖 This fork was patched with machine assistance. 🤖
+
+The original idea and guidance along the way was human.
+
+> **Fork note:** this is [aerospace-venoms](https://github.com/aerospace-venoms)'s fork of
+> [mitxela/kicad-round-tracks](https://github.com/mitxela/kicad-round-tracks), with a single
+> compatibility fix applied so the plugin loads under KiCad 10's official AppImage. See
+> [Fork changes](#fork-changes) below for details. Upstream has some longstanding open PRs that
+> haven't been merged, so this fix lives here rather than waiting on one.
+
 A subdivision- and/or native arc-based track rounding plugin for KiCad.
 
 The goal is to algorithmically melt a PCB design, smoothing all tracks in a predictable manner. 
@@ -35,6 +46,24 @@ print(pcbnew.GetWizardsSearchPaths())
 ```
 
 Under Preferences / Preferences / PCB Editor / Action Plugins, you can choose whether to have a button on the toolbar for quick access to the plugin.
+
+## Fork changes
+
+KiCad 10's official AppImage bundles a wxPython built against wxWidgets 3.3, but the AppImage
+doesn't include `libwx_gtk3u_xrc-3.3.so.2`, and the host system's wxWidgets 3.2 libs aren't
+binary-compatible with it. `round_tracks_gui.py` had an `import wx.xrc` left over from its
+wxFormBuilder code generation, even though the dialog is built entirely from plain `wx` widgets
+(`wx.Dialog`, `wx.dataview.DataViewListCtrl`, etc.) and never actually uses `wx.xrc.XmlResource`.
+That unused import was enough to make the whole plugin fail to register on KiCad 10 AppImage
+installs, silently — no error dialog, the plugin just doesn't show up under
+`Tools → External Plugins`.
+
+The fix is a one-line deletion of the unused `import wx.xrc`. This was confirmed both by tracing
+the failing import chain in KiCad's scripting console, and by checking that none of the plugin's
+other dependencies (`wx.dataview` included) actually require the missing library.
+
+This is a narrow, scoped fix for this plugin. Any other action plugin that imports `wx.xrc`
+unconditionally — even unused — will hit the same failure on this AppImage packaging.
 
 ## History
 This plugin is based on [flexRoundingSuite](https://github.com/jcloiacon/flexRoundingSuite) by Julian Loiacono and [kicad-round-tracks](https://github.com/stimulu/kicad-round-tracks) by Antoine Pintout. My contribution updated the algorithm so that subdivisions are applied equally, resulting in smoother tracks with fewer clearance errors.
